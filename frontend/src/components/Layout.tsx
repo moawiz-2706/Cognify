@@ -48,7 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       localStorage.removeItem('username');
       toast.success('Logged out successfully');
       window.location.href = '/login';
-    } catch (error) {
+    } catch (_error) {
       localStorage.removeItem('session_id');
       localStorage.removeItem('username');
       window.location.href = '/login';

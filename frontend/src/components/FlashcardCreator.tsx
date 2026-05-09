@@ -313,7 +313,7 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
                 control={control}
                 rules={{ 
                   required: 'Answer is required',
-                  validate: (value) => (value && value.trim().length > 0) || 'Answer cannot be empty'
+                  validate: (value) => ((value && value.trim().length > 0)) || 'Answer cannot be empty'
                 }}
                 render={({ field, fieldState }) => (
                   <TextField
