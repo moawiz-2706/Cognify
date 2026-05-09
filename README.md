@@ -104,26 +104,24 @@ Cognify is a smart flashcard application that uses adaptive learning algorithms 
 - The frontend reads its backend URL from `REACT_APP_API_BASE_URL`, so the same build can run locally and in production.
 
 ### Deploy the frontend to Vercel
-1. Push this repository to GitHub.
+1. Push this repository to GitHub (see "Push to GitHub" below).
 2. Create a new Vercel project from that GitHub repository.
-3. Set the **Root Directory** to `frontend`.
-4. Use the default build settings or set them explicitly to:
-   - Build Command: `npm run build`
-   - Output Directory: `build`
-5. Add an environment variable in Vercel:
+3. The project is already configured for Vercel:
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `build`
+4. Add an environment variable in Vercel:
    - `REACT_APP_API_BASE_URL=https://your-backend-domain.com`
-6. Deploy. The Vercel config in `frontend/vercel.json` keeps React Router refreshes working.
+5. Deployment will happen automatically on every push.
 
 ### Push to GitHub
-If the project is not already initialized as a git repository locally, run:
-```bash
-git init
-git add .
-git commit -m "Initial Cognify deployment setup"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
+1. Create a new repository on [GitHub](https://github.com/new).
+2. Run these commands:
+   ```bash
+   git remote add origin https://github.com/<your-username>/<your-repo>.git
+   git branch -M main
+   git push -u origin main
+   ```
 
 ### Frontend environment example
 - Copy `frontend/.env.example` to `frontend/.env.local` for local production-style testing.
