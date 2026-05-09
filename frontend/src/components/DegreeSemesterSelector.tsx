@@ -93,41 +93,6 @@ export const DegreeSemesterSelector: React.FC = () => {
     }
   };
 
-  const handleAddCourse = async (courseCode: string) => {
-    try {
-      const response = await axios.post(`/api/preferences/courses/${courseCode}`);
-      await fetchPreferences();
-      toast.success(response.data?.message || `Course ${courseCode} added successfully`);
-      // Trigger flashcard refresh event
-      window.dispatchEvent(new CustomEvent('flashcardsUpdated'));
-      // Reload page to show new flashcards after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error: any) {
-      console.error('Error adding course:', error);
-      let errorMessage = 'Failed to add course';
-      
-      if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (Array.isArray(detail)) {
-          // Handle Pydantic validation errors
-          errorMessage = detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ');
-        } else if (typeof detail === 'string') {
-          errorMessage = detail;
-        } else {
-          errorMessage = error.response.data.message || JSON.stringify(detail);
-        }
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
-    }
-  };
-
   const handleRemoveCourse = async (courseCode: string) => {
     try {
       await axios.delete(`/api/preferences/courses/${courseCode}`);
@@ -139,10 +104,6 @@ export const DegreeSemesterSelector: React.FC = () => {
   };
 
   const handleOpenCourseDialog = () => {
-    // Pre-select courses that are already added
-    const availableCourses = semesterCourses
-      .filter(c => !preferences.selected_courses.includes(c.code))
-      .map(c => c.code);
     setSelectedCoursesToAdd([]);
     setCourseDialogOpen(true);
   };

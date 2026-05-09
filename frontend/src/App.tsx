@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -11,7 +11,6 @@ import axios from './lib/api';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();

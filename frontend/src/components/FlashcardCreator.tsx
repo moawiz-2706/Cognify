@@ -19,7 +19,7 @@ import {
   Grid,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { School, Quiz } from '@mui/icons-material';
+import { School } from '@mui/icons-material';
 import axios from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -63,7 +63,6 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
   onSubmit,
   editingCard
 }) => {
-  const [selectedSubject, setSelectedSubject] = useState(editingCard?.subject || '');
   const [selectedDifficulty, setSelectedDifficulty] = useState(editingCard?.difficulty || 'medium');
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
@@ -113,7 +112,7 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
     }
   };
   
-  const { control, handleSubmit, reset, setValue, watch } = useForm<FlashcardForm>({
+  const { control, handleSubmit, reset, watch } = useForm<FlashcardForm>({
     defaultValues: {
       subject: editingCard?.subject || '',
       topic: editingCard?.topic || '',
@@ -135,7 +134,6 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
         difficulty: editingCard?.difficulty || 'medium',
         tags: editingCard?.tags || [],
       });
-      setSelectedSubject(editingCard?.subject || '');
       setSelectedDifficulty(editingCard?.difficulty || 'medium');
     }
   }, [open, editingCard, reset]);
@@ -220,7 +218,7 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
                   control={control}
                   rules={{ 
                     required: 'Please select a subject',
-                    validate: (value) => value && value.trim().length > 0 || 'Subject is required'
+                    validate: (value) => (value && value.trim().length > 0) || 'Subject is required'
                   }}
                   render={({ field, fieldState }) => (
                     <Select
@@ -232,7 +230,6 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
                       onChange={(e) => {
                         const value = e.target.value;
                         field.onChange(value);
-                        setSelectedSubject(value);
                       }}
                     >
                       {availableCourses.length === 0 ? (
@@ -290,7 +287,7 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
                 control={control}
                 rules={{ 
                   required: 'Question is required',
-                  validate: (value) => value && value.trim().length > 0 || 'Question cannot be empty'
+                  validate: (value) => (value && value.trim().length > 0) || 'Question cannot be empty'
                 }}
                 render={({ field, fieldState }) => (
                   <TextField
@@ -316,7 +313,7 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
                 control={control}
                 rules={{ 
                   required: 'Answer is required',
-                  validate: (value) => value && value.trim().length > 0 || 'Answer cannot be empty'
+                  validate: (value) => (value && value.trim().length > 0) || 'Answer cannot be empty'
                 }}
                 render={({ field, fieldState }) => (
                   <TextField

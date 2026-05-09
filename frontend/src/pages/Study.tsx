@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -9,11 +9,6 @@ import {
   LinearProgress,
   Chip,
   Alert,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,16 +20,11 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  CheckCircle,
-  Cancel,
-  Timer,
   School,
   Send,
-  Visibility,
-  VisibilityOff,
   PlayArrow,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import axios from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -81,24 +71,98 @@ export const Study: React.FC = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [detailedExplanation, setDetailedExplanation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [subjectDialogOpen, setSubjectDialogOpen] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
-  useEffect(() => {
-    // Load preferences
-    fetchPreferences().catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    // Load subjects after preferences are loaded
-    if (preferences) {
-      fetchAvailableSubjects();
+  const startStudySession = useCallback(async (selectedSubjects?: string[]) => {
+    const subjectsToUse = selectedSubjects || session.selectedSubjects;
+    
+    if (subjectsToUse.length === 0) {
+      toast.error('Please select at least one subject/course');
+      setSubjectDialogOpen(true);
+      return;
     }
-  }, [preferences]);
 
-  const fetchPreferences = async () => {
+    try {
+      // Don't show loading state for better UX
+      // Get all flashcards
+      const response = await axios.get('/api/flashcards/');
+      let cards = response.data;
+      
+      // Filter by selected subjects/courses
+      cards = cards.filter((card: Flashcard) => {
+        // Check if any tag matches selected subjects (case-insensitive)
+        const hasMatchingTag = card.tags?.some(tag => 
+          subjectsToUse.some(subject => {
+            const tagLower = tag.toLowerCase();
+            const subjectLower = subject.toLowerCase();
+            
+            // Direct match or contains
+            if (tagLower === subjectLower || 
+                tagLower.includes(subjectLower) || 
+                subjectLower.includes(tagLower)) {
+              return true;
+            }
+            
+            // For course codes like CS1002, map to course-related keywords
+            if (subject.match(/^[A-Z]{2}\d{4}$/)) {
+              const courseMappings: { [key: string]: string[] } = {
+                'CS1002': ['programming', 'basics', 'variables', 'functions'],
+                'CS1004': ['oop', 'object-oriented', 'encapsulation', 'inheritance'],
+                'CS2001': ['data-structures', 'arrays', 'trees', 'stack', 'queue'],
+                'CS2005': ['database', 'sql', 'normalization', 'acid'],
+                'CS2006': ['operating-systems', 'processes', 'threads', 'memory'],
+                'CS2009': ['algorithms', 'complexity', 'big-o', 'sorting'],
+                'CS3001': ['networks', 'tcp', 'udp', 'osi', 'dns'],
+                'AI2002': ['ai', 'artificial-intelligence', 'machine-learning', 'neural'],
+                'CS3002': ['security', 'cryptography', 'encryption', 'firewall'],
+              };
+              
+              const keywords = courseMappings[subject] || [];
+              return keywords.some(keyword => tagLower.includes(keyword));
+            }
+            
+            return false;
+          })
+        );
+        
+        // Or check subject field
+        const hasMatchingSubject = card.subject && 
+          subjectsToUse.some(subject => {
+            const cardSubjectLower = card.subject?.toLowerCase() || '';
+            const subjectLower = subject.toLowerCase();
+            return cardSubjectLower.includes(subjectLower) ||
+                   subjectLower.includes(cardSubjectLower);
+          });
+        
+        return hasMatchingTag || hasMatchingSubject;
+      });
+      
+      if (cards.length === 0) {
+        toast.error('No flashcards found for selected subjects');
+        return;
+      }
+
+      // Shuffle cards for variety
+      cards = cards.sort(() => Math.random() - 0.5);
+
+      setSession(prev => ({
+        ...prev,
+        currentCard: cards[0],
+        startTime: Date.now(),
+        sessionCards: cards,
+        completedCards: 0,
+        totalCards: cards.length,
+      }));
+      
+      toast.success(`Starting study session with ${cards.length} flashcards`);
+    } catch (error) {
+      toast.error('Failed to load study session');
+    }
+  }, [session.selectedSubjects]);
+
+  const fetchPreferences = useCallback(async () => {
     try {
       const response = await axios.get('/api/preferences');
       setPreferences(response.data);
@@ -110,15 +174,15 @@ export const Study: React.FC = () => {
         }));
         // Auto-start session if courses are selected
         if (response.data.selected_courses.length > 0) {
-          setTimeout(() => startStudySession(), 100);
+          setTimeout(() => startStudySession(response.data.selected_courses), 100);
         }
       }
     } catch (error) {
       console.error('Failed to load preferences');
     }
-  };
+  }, [startStudySession]);
 
-  const fetchAvailableSubjects = async () => {
+  const fetchAvailableSubjects = useCallback(async () => {
     try {
       // Use preferences state (should be loaded by now)
       if (preferences?.selected_courses && preferences.selected_courses.length > 0) {
@@ -158,92 +222,19 @@ export const Study: React.FC = () => {
     } catch (error) {
       console.error('Failed to load subjects');
     }
-  };
+  }, [preferences]);
 
-  const startStudySession = async () => {
-    if (session.selectedSubjects.length === 0) {
-      toast.error('Please select at least one subject/course');
-      setSubjectDialogOpen(true);
-      return;
+  useEffect(() => {
+    // Load preferences
+    fetchPreferences().catch(console.error);
+  }, [fetchPreferences]);
+
+  useEffect(() => {
+    // Load subjects after preferences are loaded
+    if (preferences) {
+      fetchAvailableSubjects();
     }
-
-    try {
-      // Don't show loading state for better UX
-      // Get all flashcards
-      const response = await axios.get('/api/flashcards/');
-      let cards = response.data;
-      
-      // Filter by selected subjects/courses
-      cards = cards.filter((card: Flashcard) => {
-        // Check if any tag matches selected subjects (case-insensitive)
-        const hasMatchingTag = card.tags?.some(tag => 
-          session.selectedSubjects.some(subject => {
-            const tagLower = tag.toLowerCase();
-            const subjectLower = subject.toLowerCase();
-            
-            // Direct match or contains
-            if (tagLower === subjectLower || 
-                tagLower.includes(subjectLower) || 
-                subjectLower.includes(tagLower)) {
-              return true;
-            }
-            
-            // For course codes like CS1002, map to course-related keywords
-            if (subject.match(/^[A-Z]{2}\d{4}$/)) {
-              const courseMappings: { [key: string]: string[] } = {
-                'CS1002': ['programming', 'basics', 'variables', 'functions'],
-                'CS1004': ['oop', 'object-oriented', 'encapsulation', 'inheritance'],
-                'CS2001': ['data-structures', 'arrays', 'trees', 'stack', 'queue'],
-                'CS2005': ['database', 'sql', 'normalization', 'acid'],
-                'CS2006': ['operating-systems', 'processes', 'threads', 'memory'],
-                'CS2009': ['algorithms', 'complexity', 'big-o', 'sorting'],
-                'CS3001': ['networks', 'tcp', 'udp', 'osi', 'dns'],
-                'AI2002': ['ai', 'artificial-intelligence', 'machine-learning', 'neural'],
-                'CS3002': ['security', 'cryptography', 'encryption', 'firewall'],
-              };
-              
-              const keywords = courseMappings[subject] || [];
-              return keywords.some(keyword => tagLower.includes(keyword));
-            }
-            
-            return false;
-          })
-        );
-        
-        // Or check subject field
-        const hasMatchingSubject = card.subject && 
-          session.selectedSubjects.some(subject => {
-            const cardSubjectLower = card.subject?.toLowerCase() || '';
-            const subjectLower = subject.toLowerCase();
-            return cardSubjectLower.includes(subjectLower) ||
-                   subjectLower.includes(cardSubjectLower);
-          });
-        
-        return hasMatchingTag || hasMatchingSubject;
-      });
-      
-      if (cards.length === 0) {
-        toast.error('No flashcards found for selected subjects');
-        return;
-      }
-
-      // Shuffle cards for variety
-      cards = cards.sort(() => Math.random() - 0.5);
-
-      setSession(prev => ({
-        ...prev,
-        currentCard: cards[0],
-        startTime: Date.now(),
-        sessionCards: cards,
-        completedCards: 0,
-        totalCards: cards.length,
-      }));
-      
-      toast.success(`Starting study session with ${cards.length} flashcards`);
-    } catch (error) {
-      toast.error('Failed to load study session');
-    }
-  };
+  }, [preferences, fetchAvailableSubjects]);
 
   const calculateAccuracy = (userAnswer: string, correctAnswer: string): number => {
     const userLower = userAnswer.toLowerCase().trim();
@@ -274,6 +265,36 @@ export const Study: React.FC = () => {
     // Ensure accuracy is between 0 and 1
     return Math.max(0, Math.min(1, accuracy));
   };
+
+  const moveToNextCard = useCallback(() => {
+    const nextIndex = session.completedCards + 1;
+    if (nextIndex < session.sessionCards.length) {
+      setSession(prev => ({
+        ...prev,
+        currentCard: prev.sessionCards[nextIndex],
+        completedCards: nextIndex,
+        startTime: Date.now(),
+      }));
+      setUserAnswer('');
+      setShowAnswer(false);
+      setAnswerSubmitted(false);
+      setDetailedExplanation(null);
+    } else {
+      // Session complete
+      toast.success('Study session completed! Great job! 🎉');
+      setSession(prev => ({
+        ...prev,
+        currentCard: null,
+        completedCards: 0,
+        totalCards: 0,
+        sessionCards: [],
+      }));
+      setUserAnswer('');
+      setShowAnswer(false);
+      setAnswerSubmitted(false);
+      setDetailedExplanation(null);
+    }
+  }, [session.completedCards, session.sessionCards]);
 
   const submitAnswer = async () => {
     if (!session.currentCard || !userAnswer.trim()) {
@@ -324,36 +345,6 @@ export const Study: React.FC = () => {
       setTimeout(() => {
         moveToNextCard();
       }, 1500);
-    }
-  };
-
-  const moveToNextCard = () => {
-    const nextIndex = session.completedCards + 1;
-    if (nextIndex < session.sessionCards.length) {
-      setSession(prev => ({
-        ...prev,
-        currentCard: prev.sessionCards[nextIndex],
-        completedCards: nextIndex,
-        startTime: Date.now(),
-      }));
-      setUserAnswer('');
-      setShowAnswer(false);
-      setAnswerSubmitted(false);
-      setDetailedExplanation(null);
-    } else {
-      // Session complete
-      toast.success('Study session completed! Great job! 🎉');
-      setSession(prev => ({
-        ...prev,
-        currentCard: null,
-        completedCards: 0,
-        totalCards: 0,
-        sessionCards: [],
-      }));
-      setUserAnswer('');
-      setShowAnswer(false);
-      setAnswerSubmitted(false);
-      setDetailedExplanation(null);
     }
   };
 

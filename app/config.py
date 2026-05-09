@@ -32,13 +32,10 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3011"
     
     # CORS
-    allowed_origins: list = [
-        "http://localhost:3011",
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://localhost:80",
-        "http://nginx:80"
-    ]
+    allowed_origins: list = os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3011,http://localhost:3000,http://localhost:8080,http://localhost:80"
+    ).split(",")
     
     class Config:
         env_file = ".env"

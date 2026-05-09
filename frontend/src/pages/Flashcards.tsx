@@ -46,16 +46,8 @@ interface Flashcard {
   updated_at: string;
 }
 
-interface FlashcardForm {
-  front: string;
-  back: string;
-  tags: string;
-  difficulty: string;
-}
-
 export const Flashcards: React.FC = () => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
@@ -90,7 +82,6 @@ export const Flashcards: React.FC = () => {
 
   const fetchFlashcards = async () => {
     try {
-      setLoading(true);
       const response = await axios.get('/api/flashcards/', {
         withCredentials: true
       });
@@ -113,8 +104,6 @@ export const Flashcards: React.FC = () => {
       console.error('Error fetching flashcards:', error);
       toast.error('Failed to load flashcards');
       setFlashcards([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -164,10 +153,10 @@ export const Flashcards: React.FC = () => {
       }
 
       if (editingCard) {
-        const response = await axios.put(`/api/flashcards/${editingCard.id}`, cardData);
+        await axios.put(`/api/flashcards/${editingCard.id}`, cardData);
         toast.success('Flashcard updated successfully');
       } else {
-        const response = await axios.post('/api/flashcards/', cardData);
+        await axios.post('/api/flashcards/', cardData);
         toast.success('Flashcard created successfully');
       }
 

@@ -12,8 +12,6 @@ import {
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -39,8 +37,6 @@ interface LearningAnalytics {
   last_study_date: string | null;
   performance_trend: number[];
 }
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const Analytics: React.FC = () => {
   const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
